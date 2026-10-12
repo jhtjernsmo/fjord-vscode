@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- **Azure Boards:** the extension runs Fjord's Azure Boards import every 10 minutes (with the app's settings), so work items assigned to you arrive even when the Fjord app isn't open. Turn it off with `fjord.azureImport`, or run *Fjord: Import from Azure Boards* yourself.
+- Imported tasks have an Azure icon, a link to the work item in the tooltip, and **Open in Azure DevOps** in the right-click menu.
+
 ## 0.2.0
 
 - **Link a folder from VS Code:** an unlinked folder shows a button that lists your Fjord projects, or creates a new one.

@@ -53,3 +53,10 @@ test('references and markdown use the task number', () => {
   assert.match(md, /Details/)
   assert.match(taskMarkdown(task(5), null, today), /_No description._/)
 })
+
+test('import summary mentions only what changed', async () => {
+  const { importSummary } = await import('../src/model')
+  assert.equal(importSummary({ created: [], updated: 3, closed: 0, unmapped: 0 }), null)
+  assert.equal(importSummary({ created: [task(1)], updated: 0, closed: 0, unmapped: 0 }), '1 new task from Azure Boards')
+  assert.equal(importSummary({ created: [task(1), task(2)], updated: 0, closed: 1, unmapped: 0 }), '2 new tasks from Azure Boards, 1 closed')
+})

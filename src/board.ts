@@ -10,10 +10,12 @@ export class BoardView implements vscode.TreeDataProvider<Node> {
   readonly onDidChangeTreeData = this.changed.event
   private board: Board | null = null
   private currentTaskId: number | null = null
+  private links = new Map<number, string>()
 
-  show(board: Board | null, currentTaskId: number | null): void {
+  show(board: Board | null, currentTaskId: number | null, links: Map<number, string> = new Map()): void {
     this.board = board
     this.currentTaskId = currentTaskId
+    this.links = links
     this.changed.fire()
   }
 
@@ -40,9 +42,10 @@ export class BoardView implements vscode.TreeDataProvider<Node> {
     )
     item.id = `task-${task.id}`
     item.description = done ? '' : taskDetail(task, today)
-    item.tooltip = tooltip(task)
-    item.contextValue = done ? 'task-done' : 'task'
-    item.iconPath = icon(task, done, task.id === this.currentTaskId, today)
+    const azure = this.links.get(task.id)
+    item.tooltip = tooltip(task, azure)
+    item.contextValue = `${done ? 'task-done' : 'task'}${azure ? '.azure' : ''}`
+    item.iconPath = icon(task, done, task.id === this.currentTaskId, today, !!azure)
     item.command = { command: 'fjord.showTask', title: 'Show Task', arguments: [task] }
     return item
   }
@@ -63,17 +66,19 @@ export class BoardView implements vscode.TreeDataProvider<Node> {
   }
 }
 
-function icon(task: Task, done: boolean, current: boolean, today: Date): vscode.ThemeIcon {
+function icon(task: Task, done: boolean, current: boolean, today: Date, azure: boolean): vscode.ThemeIcon {
   if (current) return new vscode.ThemeIcon('git-branch', new vscode.ThemeColor('charts.blue'))
   if (done) return new vscode.ThemeIcon('pass-filled', new vscode.ThemeColor('charts.green'))
   if (isOverdue(task, today)) return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.red'))
   if (task.branch) return new vscode.ThemeIcon('git-branch')
+  if (azure) return new vscode.ThemeIcon('azure')
   return new vscode.ThemeIcon('circle-outline')
 }
 
-function tooltip(task: Task): vscode.MarkdownString {
+function tooltip(task: Task, azure?: string): vscode.MarkdownString {
   const md = new vscode.MarkdownString(undefined, true)
   md.appendMarkdown(`**#${task.id} ${escape(task.title)}**`)
+  if (azure) md.appendMarkdown(`\n\n$(azure) [Azure Boards work item](${azure})`)
   if (task.branch) md.appendMarkdown(`\n\n$(git-branch) \`${task.branch}\``)
   const body = task.body_md.trim()
   if (body) md.appendMarkdown(`\n\n---\n\n${body.length > 600 ? `${body.slice(0, 600)}…` : body}`)

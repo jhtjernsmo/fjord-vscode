@@ -2,7 +2,7 @@
   "name": "fjord",
   "displayName": "Fjord",
   "description": "Your Fjord board next to your code: the task for the current branch, start branches, move tasks and open pull requests.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "jhtjernsmo",
   "license": "MIT",
   "repository": {
@@ -126,6 +126,18 @@
         "command": "fjord.taskFromSelection",
         "title": "Create Task from Selection",
         "category": "Fjord"
+      },
+      {
+        "command": "fjord.importAzure",
+        "title": "Import from Azure Boards",
+        "category": "Fjord",
+        "icon": "$(azure)"
+      },
+      {
+        "command": "fjord.openInAzure",
+        "title": "Open in Azure DevOps",
+        "category": "Fjord",
+        "icon": "$(link-external)"
       }
     ],
     "menus": {
@@ -144,6 +156,11 @@
           "command": "fjord.linkFolder",
           "when": "view == fjord.board && fjord.state == linked",
           "group": "9_link@1"
+        },
+        {
+          "command": "fjord.importAzure",
+          "when": "view == fjord.board && fjord.state == linked",
+          "group": "9_link@2"
         }
       ],
       "view/item/context": [
@@ -154,7 +171,7 @@
         },
         {
           "command": "fjord.doneTask",
-          "when": "view == fjord.board && viewItem == task",
+          "when": "view == fjord.board && viewItem =~ /^task(\\.azure)?$/",
           "group": "inline@2"
         },
         {
@@ -174,7 +191,7 @@
         },
         {
           "command": "fjord.doneTask",
-          "when": "view == fjord.board && viewItem == task",
+          "when": "view == fjord.board && viewItem =~ /^task(\\.azure)?$/",
           "group": "2_move@2"
         },
         {
@@ -186,6 +203,11 @@
           "command": "fjord.copyRef",
           "when": "view == fjord.board && viewItem =~ /^task/",
           "group": "3_info@2"
+        },
+        {
+          "command": "fjord.openInAzure",
+          "when": "view == fjord.board && viewItem =~ /\\.azure$/",
+          "group": "3_info@3"
         }
       ],
       "commandPalette": [
@@ -195,6 +217,10 @@
         },
         {
           "command": "fjord.copyRef",
+          "when": "false"
+        },
+        {
+          "command": "fjord.openInAzure",
           "when": "false"
         }
       ],
@@ -229,6 +255,19 @@
           "type": "string",
           "default": "#{id} ",
           "description": "Put into an empty commit message box while you're on a task's branch. {id} and {title} are replaced; leave empty to turn it off."
+        },
+        "fjord.azureImport": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "off"
+          ],
+          "default": "auto",
+          "enumDescriptions": [
+            "Import every 10 minutes while VS Code is focused, if the import is turned on in Fjord",
+            "Only when you run Fjord: Import from Azure Boards"
+          ],
+          "description": "Run Fjord's Azure Boards import from VS Code, so assigned work items arrive even when the Fjord app isn't open."
         }
       }
     },

@@ -10,6 +10,7 @@ Your [Fjord](https://jhtjernsmo.github.io/fjord/) board next to your code.
 - **Commit messages** start with `#12 ` while you're on the task's branch.
 - **TODO to task:** right-click a TODO and turn it into a task that links back to the line.
 - **Instant sync** with the Fjord app and the CLI.
+- **Azure Boards:** runs Fjord's import of work items assigned to you, even without the app open, and opens imported tasks in Azure DevOps.
 
 Everything runs locally through the `fjord` command-line tool, the same way the app and AI agents use it. The extension never deletes anything.
 
@@ -31,6 +32,7 @@ Everything runs locally through the `fjord` command-line tool, the same way the 
 | Fjord: Create Task from Selection | Turn the selected TODO into a task |
 | Fjord: Link Folder to Project… | Link this repository to a Fjord project |
 | Fjord: Install the fjord CLI | Download the CLI from the latest Fjord release |
+| Fjord: Import from Azure Boards | Run the Azure Boards import now (set it up in Fjord's settings) |
 
 Without a task argument, the commands use the task on the current branch, or ask.
 
@@ -39,6 +41,7 @@ Without a task argument, the commands use the task on the current branch, or ask
 | Setting | Default | |
 |---|---|---|
 | `fjord.cliPath` | (auto) | Path to the CLI; empty finds it automatically |
+| `fjord.azureImport` | `auto` | Import from Azure Boards every 10 minutes, or `off` |
 | `fjord.commitPrefix` | `#{id} ` | Start of an empty commit message on a task's branch; empty turns it off |
 | `fjord.refreshSeconds` | `30` | How often to refresh while the window is focused |
 | `fjord.showDoneTasks` | `false` | List the tasks in done columns, not just their count |

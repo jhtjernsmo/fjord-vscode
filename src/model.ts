@@ -107,3 +107,26 @@ export function taskMarkdown(task: Task, board: Board | null, today: Date): stri
 export function commitPrefix(template: string, task: Task): string {
   return template.replaceAll('{id}', String(task.id)).replaceAll('{title}', task.title)
 }
+
+/** An imported task's link to its Azure Boards work item. */
+export interface ExternalLink {
+  task_id: number
+  source: string
+  external_id: string
+  url: string
+}
+
+export interface ImportReport {
+  created: Task[]
+  updated: number
+  closed: number
+  unmapped: number
+}
+
+/** "2 new tasks from Azure Boards, 1 closed" — or null when nothing changed worth saying. */
+export function importSummary(report: ImportReport): string | null {
+  const parts: string[] = []
+  if (report.created.length) parts.push(`${report.created.length} new ${report.created.length === 1 ? 'task' : 'tasks'} from Azure Boards`)
+  if (report.closed) parts.push(`${report.closed} closed`)
+  return parts.length ? parts.join(', ') : null
+}

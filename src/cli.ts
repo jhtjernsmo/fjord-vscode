@@ -1,6 +1,6 @@
 // Runs the fjord command-line tool and parses its JSON output.
 import { execFile } from 'node:child_process'
-import type { Board, Project, Status, Task, Workspace } from './model'
+import type { Board, ExternalLink, ImportReport, Project, Status, Task, Workspace } from './model'
 
 const TIMEOUT_MS = 60_000
 
@@ -55,6 +55,15 @@ export class Fjord {
 
   addProject(name: string): Promise<Project> {
     return this.run<Project>(['project', 'add', name])
+  }
+
+  azureImport(): Promise<ImportReport> {
+    return this.run<ImportReport>(['azure', 'import'])
+  }
+
+  /** Work item links for imported tasks; empty with an older CLI. */
+  azureLinks(project: string): Promise<ExternalLink[]> {
+    return this.run<ExternalLink[]>(['azure', 'links', project]).catch(() => [])
   }
 
   link(project: string, folder: string): Promise<unknown> {

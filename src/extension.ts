@@ -6,11 +6,14 @@ import { BoardView } from './board'
 import { CliMissing, CliTooOld, Fjord } from './cli'
 import { CommitMessages } from './commit'
 import { findCli, installCli } from './locate'
-import { allTasks, statusOf, taskRef } from './model'
+import { allTasks, importSummary, statusOf, taskRef } from './model'
 import type { Board, Task, Workspace } from './model'
 import { watchData } from './sync'
 import { SCHEME, TaskDocuments } from './taskDocument'
 import { sourceBody, titleFromSelection } from './todo'
+
+const AZURE_IMPORT_MS = 10 * 60 * 1000
+const AZURE_FIRST_IMPORT_MS = 15 * 1000
 
 type State = 'linked' | 'unlinked' | 'noRepo' | 'noCli' | 'tooOld'
 
@@ -29,6 +32,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   let workspace: Workspace | null = null
   let board: Board | null = null
+  let links = new Map<number, string>()
   let refreshing: Promise<void> | null = null
 
   const docs = new TaskDocuments(fjord, () => board)
@@ -51,11 +55,19 @@ export function activate(context: vscode.ExtensionContext): void {
     const dir = folder()
     loadedFolder = dir
     workspace = dir ? await fjord.which(dir) : null
-    board = workspace ? await fjord.board(String(workspace.project.id)) : null
+    if (!workspace) {
+      board = null
+      links = new Map()
+      return
+    }
+    const project = String(workspace.project.id)
+    const [b, l] = await Promise.all([fjord.board(project), fjord.azureLinks(project)])
+    board = b
+    links = new Map(l.map((x) => [x.task_id, x.url]))
   }
 
   const render = () => {
-    view.show(board, workspace?.task?.id ?? null)
+    view.show(board, workspace?.task?.id ?? null, links)
     tree.description = workspace ? workspace.project.name : undefined
     if (!workspace) {
       statusBar.hide()
@@ -123,6 +135,18 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const commands: Record<string, (...args: unknown[]) => unknown> = {
     'fjord.refresh': () => refresh(),
+
+    'fjord.importAzure': async () => {
+      const report = await act('importing from Azure Boards', () => fjord.azureImport())
+      if (report) vscode.window.showInformationMessage(`Fjord: ${importSummary(report) ?? 'Azure Boards is up to date.'}`)
+    },
+
+    'fjord.openInAzure': async (arg) => {
+      const task = taskFrom(arg) ?? workspace?.task
+      const url = task ? links.get(task.id) : undefined
+      if (url) await vscode.env.openExternal(vscode.Uri.parse(url))
+      else vscode.window.showInformationMessage('Fjord: this task did not come from Azure Boards.')
+    },
 
     'fjord.installCli': async () => {
       try {
@@ -274,7 +298,28 @@ export function activate(context: vscode.ExtensionContext): void {
   }
   schedule()
 
+  // The same Azure Boards import as the desktop app, so it runs without Fjord open.
+  let azureOff = false
+  const autoImport = async () => {
+    if (azureOff || !workspace || !vscode.window.state.focused) return
+    if (config().get<string>('azureImport', 'auto') !== 'auto') return
+    try {
+      const summary = importSummary(await fjord.azureImport())
+      if (summary) {
+        vscode.window.setStatusBarMessage(`$(azure) ${summary}`, 8000)
+        await refresh()
+      }
+    } catch (err) {
+      // Not set up in Fjord, or offline: try again only if the user asks.
+      if (/isn't set up|unrecognized subcommand/.test(message(err))) azureOff = true
+      log.appendLine(`azure import: ${message(err)}`)
+    }
+  }
+  const azureTimer = setInterval(autoImport, AZURE_IMPORT_MS)
+  setTimeout(autoImport, AZURE_FIRST_IMPORT_MS)
+
   context.subscriptions.push(
+    { dispose: () => clearInterval(azureTimer) },
     log,
     tree,
     statusBar,
