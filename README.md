@@ -16,6 +16,15 @@ Your [Fjord](https://jhtjernsmo.github.io/fjord/) board next to your code.
 
 Everything runs locally through the `fjord` command-line tool, the same way the app and AI agents use it. The extension never deletes anything.
 
+## Install
+
+Download the latest `fjord-*.vsix` from the [releases page](https://github.com/jhtjernsmo/fjord-vscode/releases/latest), then either:
+
+- in VS Code: Extensions → `…` → **Install from VSIX…** and pick the file, or
+- in a terminal: `code --install-extension fjord-0.3.1.vsix`
+
+Works the same in Cursor and VSCodium. To update, install the newer `.vsix` over the old one.
+
 ## Requirements
 
 - The `fjord` CLI, version 0.2.18 or later. The extension finds it on your `PATH`, in Homebrew or cargo, and offers to download it if it's missing (or set `fjord.cliPath`).
