@@ -37,6 +37,7 @@ export interface Board {
 
 export interface Workspace {
   project: Project
+  repo: { path: string }
   branch: string
   task: Task | null
 }
@@ -100,4 +101,9 @@ export function taskMarkdown(task: Task, board: Board | null, today: Date): stri
   const meta = [status, taskDetail(task, today), task.branch ? `\`${task.branch}\`` : ''].filter(Boolean).join(' · ')
   const body = task.body_md.trim() || '_No description._'
   return `# #${task.id} ${task.title}\n\n${meta}\n\n${body}\n`
+}
+
+/** The commit message start for a task, from a template like "#{id} ". */
+export function commitPrefix(template: string, task: Task): string {
+  return template.replaceAll('{id}', String(task.id)).replaceAll('{title}', task.title)
 }

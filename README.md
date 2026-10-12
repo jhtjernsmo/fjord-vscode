@@ -7,13 +7,16 @@ Your [Fjord](https://jhtjernsmo.github.io/fjord/) board next to your code.
 - **Start a task:** pick a task and Fjord checks out its branch (created the first time).
 - **Move, finish and open pull requests** for tasks without leaving the editor.
 - **Show a task** as a Markdown preview, or copy `#12 Title` for a commit message.
+- **Commit messages** start with `#12 ` while you're on the task's branch.
+- **TODO to task:** right-click a TODO and turn it into a task that links back to the line.
+- **Instant sync** with the Fjord app and the CLI.
 
 Everything runs locally through the `fjord` command-line tool, the same way the app and AI agents use it. The extension never deletes anything.
 
 ## Requirements
 
-- The `fjord` CLI, version 0.2.18 or later, on your `PATH` (or set `fjord.cliPath`). Get it from the [releases page](https://github.com/jhtjernsmo/fjord/releases/latest) or with `brew install jhtjernsmo/fjord/fjord-cli`.
-- A Fjord project linked to the folder's repository: open the project's Git tab in Fjord, or run `fjord git link <project> .`.
+- The `fjord` CLI, version 0.2.18 or later. The extension finds it on your `PATH`, in Homebrew or cargo, and offers to download it if it's missing (or set `fjord.cliPath`).
+- A git repository linked to a Fjord project. If the folder isn't linked, the Fjord view has a **Link to a project** button.
 
 ## Commands
 
@@ -24,7 +27,10 @@ Everything runs locally through the `fjord` command-line tool, the same way the 
 | Fjord: Move Task… | Move a task to another column |
 | Fjord: Mark Task as Done | Move a task to the done column |
 | Fjord: Open Pull Request for Task | Push the task's branch and open a pull request |
-| Fjord: Current Task Actions | The same menu as clicking the status bar |
+| Fjord: Current Task Actions (`Ctrl+Alt+F`) | The same menu as clicking the status bar |
+| Fjord: Create Task from Selection | Turn the selected TODO into a task |
+| Fjord: Link Folder to Project… | Link this repository to a Fjord project |
+| Fjord: Install the fjord CLI | Download the CLI from the latest Fjord release |
 
 Without a task argument, the commands use the task on the current branch, or ask.
 
@@ -32,6 +38,7 @@ Without a task argument, the commands use the task on the current branch, or ask
 
 | Setting | Default | |
 |---|---|---|
-| `fjord.cliPath` | `fjord` | Path to the CLI |
+| `fjord.cliPath` | (auto) | Path to the CLI; empty finds it automatically |
+| `fjord.commitPrefix` | `#{id} ` | Start of an empty commit message on a task's branch; empty turns it off |
 | `fjord.refreshSeconds` | `30` | How often to refresh while the window is focused |
 | `fjord.showDoneTasks` | `false` | List the tasks in done columns, not just their count |

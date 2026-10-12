@@ -2,62 +2,208 @@
   "name": "fjord",
   "displayName": "Fjord",
   "description": "Your Fjord board next to your code: the task for the current branch, start branches, move tasks and open pull requests.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "jhtjernsmo",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/jhtjernsmo/fjord-vscode" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jhtjernsmo/fjord-vscode"
+  },
   "homepage": "https://jhtjernsmo.github.io/fjord/",
   "icon": "media/icon.png",
-  "engines": { "vscode": "^1.95.0" },
-  "categories": ["Other", "SCM Providers"],
-  "keywords": ["kanban", "tasks", "project management", "git", "fjord"],
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other",
+    "SCM Providers"
+  ],
+  "keywords": [
+    "kanban",
+    "tasks",
+    "project management",
+    "git",
+    "fjord"
+  ],
   "main": "./out/src/extension.js",
-  "activationEvents": ["onStartupFinished"],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "views": {
-      "explorer": [{ "id": "fjord.board", "name": "Fjord" }]
+      "explorer": [
+        {
+          "id": "fjord.board",
+          "name": "Fjord"
+        }
+      ]
     },
     "viewsWelcome": [
       {
         "view": "fjord.board",
-        "contents": "This folder isn't linked to a Fjord project.\nLink it in Fjord (Git tab) or run `fjord git link <project> .` in a terminal.\n[Refresh](command:fjord.refresh)",
+        "contents": "This folder isn't linked to a Fjord project yet.\n[Link to a project](command:fjord.linkFolder)",
         "when": "fjord.state == unlinked"
       },
       {
         "view": "fjord.board",
-        "contents": "The fjord command-line tool wasn't found.\n[Install the CLI](https://github.com/jhtjernsmo/fjord/releases/latest) or set its path in settings.\n[Open settings](command:workbench.action.openSettings?%22fjord.cliPath%22)",
+        "contents": "Open a folder that is a git repository to see its Fjord board.",
+        "when": "fjord.state == noRepo"
+      },
+      {
+        "view": "fjord.board",
+        "contents": "Fjord needs its command-line tool, and it isn't installed yet.\n[Install the fjord CLI](command:fjord.installCli)\nAlready installed somewhere else? [Set its path](command:workbench.action.openSettings?%22fjord.cliPath%22)",
         "when": "fjord.state == noCli"
+      },
+      {
+        "view": "fjord.board",
+        "contents": "Your fjord CLI is too old for this extension; it needs version 0.2.18 or later.\n[Update the fjord CLI](command:fjord.installCli)",
+        "when": "fjord.state == tooOld"
       }
     ],
     "commands": [
-      { "command": "fjord.refresh", "title": "Refresh", "category": "Fjord", "icon": "$(refresh)" },
-      { "command": "fjord.newTask", "title": "New Task", "category": "Fjord", "icon": "$(add)" },
-      { "command": "fjord.startTask", "title": "Start Task (Check Out Branch)", "category": "Fjord", "icon": "$(git-branch)" },
-      { "command": "fjord.moveTask", "title": "Move Task…", "category": "Fjord" },
-      { "command": "fjord.doneTask", "title": "Mark Task as Done", "category": "Fjord", "icon": "$(check)" },
-      { "command": "fjord.openPullRequest", "title": "Open Pull Request for Task", "category": "Fjord", "icon": "$(git-pull-request)" },
-      { "command": "fjord.showTask", "title": "Show Task", "category": "Fjord" },
-      { "command": "fjord.copyRef", "title": "Copy Task Reference", "category": "Fjord" },
-      { "command": "fjord.currentTask", "title": "Current Task Actions", "category": "Fjord" }
+      {
+        "command": "fjord.refresh",
+        "title": "Refresh",
+        "category": "Fjord",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "fjord.newTask",
+        "title": "New Task",
+        "category": "Fjord",
+        "icon": "$(add)"
+      },
+      {
+        "command": "fjord.startTask",
+        "title": "Start Task (Check Out Branch)",
+        "category": "Fjord",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "fjord.moveTask",
+        "title": "Move Task…",
+        "category": "Fjord"
+      },
+      {
+        "command": "fjord.doneTask",
+        "title": "Mark Task as Done",
+        "category": "Fjord",
+        "icon": "$(check)"
+      },
+      {
+        "command": "fjord.openPullRequest",
+        "title": "Open Pull Request for Task",
+        "category": "Fjord",
+        "icon": "$(git-pull-request)"
+      },
+      {
+        "command": "fjord.showTask",
+        "title": "Show Task",
+        "category": "Fjord"
+      },
+      {
+        "command": "fjord.copyRef",
+        "title": "Copy Task Reference",
+        "category": "Fjord"
+      },
+      {
+        "command": "fjord.currentTask",
+        "title": "Current Task Actions",
+        "category": "Fjord"
+      },
+      {
+        "command": "fjord.linkFolder",
+        "title": "Link Folder to Project…",
+        "category": "Fjord",
+        "icon": "$(link)"
+      },
+      {
+        "command": "fjord.installCli",
+        "title": "Install the fjord CLI",
+        "category": "Fjord"
+      },
+      {
+        "command": "fjord.taskFromSelection",
+        "title": "Create Task from Selection",
+        "category": "Fjord"
+      }
     ],
     "menus": {
       "view/title": [
-        { "command": "fjord.newTask", "when": "view == fjord.board && fjord.state == linked", "group": "navigation@1" },
-        { "command": "fjord.refresh", "when": "view == fjord.board", "group": "navigation@2" }
+        {
+          "command": "fjord.newTask",
+          "when": "view == fjord.board && fjord.state == linked",
+          "group": "navigation@1"
+        },
+        {
+          "command": "fjord.refresh",
+          "when": "view == fjord.board",
+          "group": "navigation@2"
+        },
+        {
+          "command": "fjord.linkFolder",
+          "when": "view == fjord.board && fjord.state == linked",
+          "group": "9_link@1"
+        }
       ],
       "view/item/context": [
-        { "command": "fjord.startTask", "when": "view == fjord.board && viewItem =~ /^task/", "group": "inline@1" },
-        { "command": "fjord.doneTask", "when": "view == fjord.board && viewItem == task", "group": "inline@2" },
-        { "command": "fjord.startTask", "when": "view == fjord.board && viewItem =~ /^task/", "group": "1_work@1" },
-        { "command": "fjord.openPullRequest", "when": "view == fjord.board && viewItem =~ /^task/", "group": "1_work@2" },
-        { "command": "fjord.moveTask", "when": "view == fjord.board && viewItem =~ /^task/", "group": "2_move@1" },
-        { "command": "fjord.doneTask", "when": "view == fjord.board && viewItem == task", "group": "2_move@2" },
-        { "command": "fjord.showTask", "when": "view == fjord.board && viewItem =~ /^task/", "group": "3_info@1" },
-        { "command": "fjord.copyRef", "when": "view == fjord.board && viewItem =~ /^task/", "group": "3_info@2" }
+        {
+          "command": "fjord.startTask",
+          "when": "view == fjord.board && viewItem =~ /^task/",
+          "group": "inline@1"
+        },
+        {
+          "command": "fjord.doneTask",
+          "when": "view == fjord.board && viewItem == task",
+          "group": "inline@2"
+        },
+        {
+          "command": "fjord.startTask",
+          "when": "view == fjord.board && viewItem =~ /^task/",
+          "group": "1_work@1"
+        },
+        {
+          "command": "fjord.openPullRequest",
+          "when": "view == fjord.board && viewItem =~ /^task/",
+          "group": "1_work@2"
+        },
+        {
+          "command": "fjord.moveTask",
+          "when": "view == fjord.board && viewItem =~ /^task/",
+          "group": "2_move@1"
+        },
+        {
+          "command": "fjord.doneTask",
+          "when": "view == fjord.board && viewItem == task",
+          "group": "2_move@2"
+        },
+        {
+          "command": "fjord.showTask",
+          "when": "view == fjord.board && viewItem =~ /^task/",
+          "group": "3_info@1"
+        },
+        {
+          "command": "fjord.copyRef",
+          "when": "view == fjord.board && viewItem =~ /^task/",
+          "group": "3_info@2"
+        }
       ],
       "commandPalette": [
-        { "command": "fjord.showTask", "when": "false" },
-        { "command": "fjord.copyRef", "when": "false" }
+        {
+          "command": "fjord.showTask",
+          "when": "false"
+        },
+        {
+          "command": "fjord.copyRef",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "fjord.taskFromSelection",
+          "when": "fjord.state == linked",
+          "group": "9_fjord@1"
+        }
       ]
     },
     "configuration": {
@@ -65,8 +211,8 @@
       "properties": {
         "fjord.cliPath": {
           "type": "string",
-          "default": "fjord",
-          "description": "Path to the fjord command-line tool."
+          "default": "",
+          "description": "Path to the fjord command-line tool. Leave empty to find it automatically."
         },
         "fjord.refreshSeconds": {
           "type": "number",
@@ -78,9 +224,76 @@
           "type": "boolean",
           "default": false,
           "description": "Show the tasks in done columns, not just their count."
+        },
+        "fjord.commitPrefix": {
+          "type": "string",
+          "default": "#{id} ",
+          "description": "Put into an empty commit message box while you're on a task's branch. {id} and {title} are replaced; leave empty to turn it off."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "fjord.currentTask",
+        "key": "ctrl+alt+f",
+        "when": "fjord.state == linked"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "getStarted",
+        "title": "Get started with Fjord",
+        "description": "Your Fjord board next to your code, in a few steps.",
+        "steps": [
+          {
+            "id": "cli",
+            "title": "Install the fjord CLI",
+            "description": "The extension talks to Fjord through its command-line tool. If it isn't found automatically, install it here.\n[Install the CLI](command:fjord.installCli)",
+            "media": {
+              "markdown": "media/walkthrough/cli.md"
+            },
+            "completionEvents": [
+              "onCommand:fjord.installCli",
+              "onContext:fjord.state == linked",
+              "onContext:fjord.state == unlinked"
+            ]
+          },
+          {
+            "id": "link",
+            "title": "Link this folder to a project",
+            "description": "Pick one of your Fjord projects, or create a new one. Its board then shows in the Explorer.\n[Link folder](command:fjord.linkFolder)",
+            "media": {
+              "markdown": "media/walkthrough/link.md"
+            },
+            "completionEvents": [
+              "onContext:fjord.state == linked"
+            ]
+          },
+          {
+            "id": "start",
+            "title": "Start a task",
+            "description": "Pick a task and Fjord checks out its branch. The task shows in the status bar, and \"#12 \" is ready in the commit message.\n[Start a task](command:fjord.startTask)",
+            "media": {
+              "markdown": "media/walkthrough/start.md"
+            },
+            "completionEvents": [
+              "onCommand:fjord.startTask"
+            ]
+          },
+          {
+            "id": "keys",
+            "title": "Everything from the keyboard",
+            "description": "Ctrl+Alt+F opens the menu for the current task. Select a TODO and right-click to turn it into a task.\n[Open the task menu](command:fjord.currentTask)",
+            "media": {
+              "markdown": "media/walkthrough/keys.md"
+            },
+            "completionEvents": [
+              "onCommand:fjord.currentTask"
+            ]
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "compile": "tsc -p .",

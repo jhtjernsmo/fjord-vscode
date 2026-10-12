@@ -1,17 +1,26 @@
 // Fjord for VS Code: the board for the linked project, the task on the current
 // branch in the status bar, and commands that call the fjord CLI.
 import * as vscode from 'vscode'
+import { basename, relative } from 'node:path'
 import { BoardView } from './board'
 import { CliMissing, CliTooOld, Fjord } from './cli'
+import { CommitMessages } from './commit'
+import { findCli, installCli } from './locate'
 import { allTasks, statusOf, taskRef } from './model'
 import type { Board, Task, Workspace } from './model'
+import { watchData } from './sync'
 import { SCHEME, TaskDocuments } from './taskDocument'
+import { sourceBody, titleFromSelection } from './todo'
 
-type State = 'linked' | 'unlinked' | 'noCli'
+type State = 'linked' | 'unlinked' | 'noRepo' | 'noCli' | 'tooOld'
 
 export function activate(context: vscode.ExtensionContext): void {
   const config = () => vscode.workspace.getConfiguration('fjord')
-  const fjord = new Fjord(() => config().get<string>('cliPath')?.trim() || 'fjord')
+  const storage = context.globalStorageUri.fsPath
+  let foundCli: string | null = null
+  const cliPath = () => config().get<string>('cliPath')?.trim() || foundCli || 'fjord'
+  const fjord = new Fjord(cliPath)
+  const commits = new CommitMessages()
   const log = vscode.window.createOutputChannel('Fjord')
   const view = new BoardView()
   const tree = vscode.window.createTreeView('fjord.board', { treeDataProvider: view, showCollapseAll: true })
@@ -21,7 +30,6 @@ export function activate(context: vscode.ExtensionContext): void {
   let workspace: Workspace | null = null
   let board: Board | null = null
   let refreshing: Promise<void> | null = null
-  let warnedTooOld = false
 
   const docs = new TaskDocuments(fjord, () => board)
 
@@ -36,6 +44,10 @@ export function activate(context: vscode.ExtensionContext): void {
   let loadedFolder: string | undefined
 
   const load = async () => {
+    if (!config().get<string>('cliPath')?.trim() && !foundCli) {
+      foundCli = await findCli(storage)
+      if (!foundCli) throw new CliMissing('fjord')
+    }
     const dir = folder()
     loadedFolder = dir
     workspace = dir ? await fjord.which(dir) : null
@@ -50,7 +62,8 @@ export function activate(context: vscode.ExtensionContext): void {
       return
     }
     const task = workspace.task
-    statusBar.text = task ? `$(tasklist) #${task.id} ${short(task.title)}` : `$(tasklist) ${workspace.project.name}`
+    commits.update(workspace.repo.path, task)
+    statusBar.text = task ? `$(tasklist) #${task.id} ${short(task.title)}` : '$(tasklist) Start a task'
     statusBar.tooltip = task ? `${taskRef(task)}\n${workspace.project.name} · ${workspace.branch}` : `No Fjord task on ${workspace.branch}. Click to start one.`
     statusBar.show()
   }
@@ -62,17 +75,9 @@ export function activate(context: vscode.ExtensionContext): void {
         workspace = null
         board = null
         if (err instanceof CliMissing) return setState('noCli')
-        if (err instanceof CliTooOld) {
-          if (!warnedTooOld) {
-            warnedTooOld = true
-            vscode.window.showWarningMessage('Fjord: your fjord CLI is too old for this extension. Update it to 0.2.18 or later.', 'Download').then((pick) => {
-              if (pick) vscode.env.openExternal(vscode.Uri.parse('https://github.com/jhtjernsmo/fjord/releases/latest'))
-            })
-          }
-          return setState('noCli')
-        }
+        if (err instanceof CliTooOld) return setState('tooOld')
         log.appendLine(`refresh: ${message(err)}`)
-        return setState('unlinked')
+        return setState(/not inside a git repository/.test(message(err)) ? 'noRepo' : 'unlinked')
       })
       .then(render)
       .finally(() => {
@@ -118,6 +123,60 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const commands: Record<string, (...args: unknown[]) => unknown> = {
     'fjord.refresh': () => refresh(),
+
+    'fjord.installCli': async () => {
+      try {
+        foundCli = await vscode.window.withProgress(
+          { location: vscode.ProgressLocation.Notification, title: 'Fjord: downloading the fjord CLI…' },
+          () => installCli(storage),
+        )
+        vscode.window.showInformationMessage('Fjord: the CLI is installed and ready.')
+      } catch (err) {
+        vscode.window.showErrorMessage(`Fjord: ${message(err)}`)
+      }
+      await refresh()
+    },
+
+    'fjord.linkFolder': async () => {
+      const dir = folder()
+      if (!dir) return
+      let projects
+      try {
+        projects = await fjord.projects()
+      } catch (err) {
+        vscode.window.showErrorMessage(`Fjord: ${message(err)}`)
+        return
+      }
+      const NEW = '$(add) New project…'
+      const pick = await vscode.window.showQuickPick(
+        [{ label: NEW, slug: '' }, ...projects.map((p) => ({ label: p.name, description: p.slug, slug: p.slug }))],
+        { placeHolder: `Link “${basename(dir)}” to which Fjord project?` },
+      )
+      if (!pick) return
+      let slug = pick.slug
+      if (pick.label === NEW) {
+        const name = (await vscode.window.showInputBox({ prompt: 'Name of the new Fjord project', value: basename(dir) }))?.trim()
+        if (!name) return
+        const created = await act('creating project', () => fjord.addProject(name))
+        if (!created) return
+        slug = created.slug
+      }
+      await act('linking folder', () => fjord.link(slug, dir))
+    },
+
+    'fjord.taskFromSelection': async () => {
+      const ws = requireProject()
+      const editor = vscode.window.activeTextEditor
+      if (!ws || !editor) return
+      const range = editor.selection.isEmpty ? editor.document.lineAt(editor.selection.active.line).range : editor.selection
+      const text = editor.document.getText(range)
+      const title = (await vscode.window.showInputBox({ prompt: `New task in ${ws.project.name}`, value: titleFromSelection(text) }))?.trim()
+      if (!title) return
+      const file = relative(ws.repo.path, editor.document.uri.fsPath).replaceAll('\\', '/')
+      const body = sourceBody(file, range.start.line + 1, text)
+      const task = await act('adding task', () => fjord.addTask(String(ws.project.id), title, body))
+      if (task) vscode.window.setStatusBarMessage(`$(check) Added #${task.id} ${task.title}`, 4000)
+    },
 
     'fjord.newTask': async () => {
       const ws = requireProject()
@@ -234,6 +293,7 @@ export function activate(context: vscode.ExtensionContext): void {
       refresh()
     }),
     { dispose: () => timer && clearInterval(timer) },
+    { dispose: watchData(() => refresh()) },
   )
 
   refresh()

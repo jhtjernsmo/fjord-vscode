@@ -1,6 +1,6 @@
 // Runs the fjord command-line tool and parses its JSON output.
 import { execFile } from 'node:child_process'
-import type { Board, Status, Task, Workspace } from './model'
+import type { Board, Project, Status, Task, Workspace } from './model'
 
 const TIMEOUT_MS = 60_000
 
@@ -45,8 +45,20 @@ export class Fjord {
     return this.run<Task>(['task', 'show', String(id)])
   }
 
-  addTask(project: string, title: string): Promise<Task> {
-    return this.run<Task>(['task', 'add', project, title])
+  addTask(project: string, title: string, body = ''): Promise<Task> {
+    return this.run<Task>(['task', 'add', project, title, '--body', body])
+  }
+
+  projects(): Promise<Project[]> {
+    return this.run<Project[]>(['project', 'list'])
+  }
+
+  addProject(name: string): Promise<Project> {
+    return this.run<Project>(['project', 'add', name])
+  }
+
+  link(project: string, folder: string): Promise<unknown> {
+    return this.run(['git', 'link', project, folder])
   }
 
   moveTask(id: number, status: number): Promise<Task> {
