@@ -2,7 +2,7 @@
   "name": "fjord",
   "displayName": "Fjord",
   "description": "Your Fjord board next to your code: the task for the current branch, start branches, move tasks and open pull requests.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "jhtjernsmo",
   "license": "MIT",
   "repository": {

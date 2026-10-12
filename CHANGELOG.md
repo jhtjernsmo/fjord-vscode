@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- **Link folder** (and the other commands) no longer do nothing without an open folder: they say so and offer *Open Folder*.
+- A missing CLI is explained, with a button to install it, instead of a bare error.
+
 ## 0.3.0
 
 - **Azure Boards:** the extension runs Fjord's Azure Boards import every 10 minutes (with the app's settings), so work items assigned to you arrive even when the Fjord app isn't open. Turn it off with `fjord.azureImport`, or run *Fjord: Import from Azure Boards* yourself.

@@ -47,11 +47,35 @@ export function activate(context: vscode.ExtensionContext): void {
 
   let loadedFolder: string | undefined
 
-  const load = async () => {
-    if (!config().get<string>('cliPath')?.trim() && !foundCli) {
-      foundCli = await findCli(storage)
-      if (!foundCli) throw new CliMissing('fjord')
+  /** Finds the CLI once (unless a path is set); throws CliMissing if there is none. */
+  const ensureCli = async () => {
+    if (config().get<string>('cliPath')?.trim() || foundCli) return
+    foundCli = await findCli(storage)
+    if (!foundCli) throw new CliMissing('the fjord CLI was not found')
+  }
+
+  /** Explains a failed command instead of failing silently. */
+  const explain = async (err: unknown) => {
+    if (err instanceof CliMissing) {
+      const pick = await vscode.window.showWarningMessage('Fjord: the fjord command-line tool is not installed.', 'Install it')
+      if (pick) await vscode.commands.executeCommand('fjord.installCli')
+      return
     }
+    vscode.window.showErrorMessage(`Fjord: ${message(err)}`)
+  }
+
+  const requireFolder = (): string | undefined => {
+    const dir = folder()
+    if (!dir) {
+      vscode.window.showInformationMessage('Fjord: open a folder with a git repository first.', 'Open Folder').then((pick) => {
+        if (pick) vscode.commands.executeCommand('workbench.action.files.openFolder')
+      })
+    }
+    return dir
+  }
+
+  const load = async () => {
+    await ensureCli()
     const dir = folder()
     loadedFolder = dir
     workspace = dir ? await fjord.which(dir) : null
@@ -103,7 +127,7 @@ export function activate(context: vscode.ExtensionContext): void {
     try {
       return await vscode.window.withProgress({ location: vscode.ProgressLocation.Window, title: `Fjord: ${title}` }, run)
     } catch (err) {
-      vscode.window.showErrorMessage(`Fjord: ${message(err)}`)
+      await explain(err)
       return undefined
     } finally {
       await refresh()
@@ -129,8 +153,12 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   const requireProject = (): Workspace | undefined => {
-    if (!workspace) vscode.window.showInformationMessage('Fjord: this folder is not linked to a Fjord project.')
-    return workspace ?? undefined
+    if (workspace) return workspace
+    if (!requireFolder()) return undefined
+    vscode.window.showInformationMessage('Fjord: this folder is not linked to a Fjord project yet.', 'Link to a project').then((pick) => {
+      if (pick) vscode.commands.executeCommand('fjord.linkFolder')
+    })
+    return undefined
   }
 
   const commands: Record<string, (...args: unknown[]) => unknown> = {
@@ -162,13 +190,14 @@ export function activate(context: vscode.ExtensionContext): void {
     },
 
     'fjord.linkFolder': async () => {
-      const dir = folder()
+      const dir = requireFolder()
       if (!dir) return
       let projects
       try {
+        await ensureCli()
         projects = await fjord.projects()
       } catch (err) {
-        vscode.window.showErrorMessage(`Fjord: ${message(err)}`)
+        await explain(err)
         return
       }
       const NEW = '$(add) New project…'
