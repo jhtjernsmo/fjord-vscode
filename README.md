@@ -2,6 +2,8 @@
 
 Your [Fjord](https://jhtjernsmo.github.io/fjord/) board next to your code.
 
+![The Fjord board in the Explorer and a task preview](https://raw.githubusercontent.com/jhtjernsmo/fjord-vscode/main/media/screenshot.png)
+
 - **Status bar:** the task for the branch you're on, like `#12 Fix push notifications`. Click it for actions.
 - **Fjord view in the Explorer:** the board of the project linked to this folder, column by column, with priority, due dates and subtasks.
 - **Start a task:** pick a task and Fjord checks out its branch (created the first time).
